@@ -2,7 +2,6 @@
 #include <vector>
 #include <cmath>
 #include <random>
-
 using namespace std;
 
 // for calculating a neural network it is n1 + w1 + b
@@ -18,14 +17,8 @@ public:
     double nNeurons;
     double neuronDepth;
 
-    //=======================================
-    // CONSTRUCTEUR
-    //=======================================
-    neuralNetwork(
-        vector<vector<double>> nInputlayer,
-        vector<double> nAwnsers,
-        double numberNeurons,
-        double nNeuronDepth)
+    // fonction relu
+    neuralNetwork(vector<vector<double>> nInputlayer, vector<double> nAwnsers, double numberNeurons, double nNeuronDepth)
     {
         inputLayer = nInputlayer;
         awnsers = nAwnsers;
@@ -33,9 +26,6 @@ public:
         neuronDepth = nNeuronDepth;
     };
 
-    //=======================================
-    // POIDS ALEATOIRE
-    //=======================================
     double randomWeight()
     {
         static random_device rd;
@@ -45,9 +35,6 @@ public:
         return dist(gen);
     }
 
-    //=======================================
-    // FONCTION RELU
-    //=======================================
     double ReLU(double n)
     {
         if (n < 0.0)
@@ -61,28 +48,24 @@ public:
     };
 
     //====================================
-    // CALCULATE LOSS
+    // calculate loss
     //====================================
     double loss(double prediction, double awnser)
     {
+
         return ((prediction - awnser) * (prediction - awnser));
     };
-
     //==================================
-    // GRADIENT DESCENT
+    // Gradient descent
     //====================================
-    double gradientDescent(
-        double weight,
-        double learningRate,
-        double gradient)
+    double gradientDescent(double weight, double learningRate, double gradient)
     {
         weight = weight - learningRate * gradient;
-
         return weight;
     };
 
     //=====================================
-    // MULTIPLICATION DE MATRICES
+    // Multiplication de matrices
     //=====================================
     vector<vector<double>> multiplyMatrices(
         vector<vector<double>> A,
@@ -105,115 +88,108 @@ public:
 
         return result;
     };
-
-    //=======================================
+    //
     // FONCTION SIGMOIDE
-    //=======================================
+    //
     double sigmoid(double x)
     {
         return 1.0 / (1.0 + exp(-x));
     };
 
     //=======================================
-    // FORWARD PROPAGATION
+    // Fontion d entrainement
     //=======================================
-    double forwardPropagation(vector<double> input)
+    void train(int eproach = 1000, double learningRate = 0.01)
     {
-        double result = 0.0;
-
-        // weight × input
-        for (int i = 0; i < input.size(); i++)
-        {
-            result += input[i] * weight[i];
-        }
-
-        // + bias
-        result += bias;
-
-        // activation
-        result = sigmoid(result);
-
-        return result;
-    };
-
-    //=======================================
-    // FONCTION D'ENTRAINEMENT
-    //=======================================
-    double train(int eproach = 1000)
-    {
-        // Donner un bias aleatoire
+        // on entraine ici le reseaux de neurone
+        // il faut donner un weight aleatoire pour commencer l entrainement
         bias = randomWeight();
 
-        // Donner des poids aleatoires
         weight.clear();
 
         for (int i = 0; i < inputLayer[0].size(); i++)
         {
             weight.push_back(randomWeight());
-        }
+        };
 
-        // Tester le forward propagation
-        for (int i = 0; i < inputLayer.size(); i++)
+        // normalement on a des weight alleatoires
+        // maintenant il va faloir lire une documentation pour comprendre comment le tout marche
+        // resources
+        // https://www.freecodecamp.org/news/neural-networks-explained-simply-in-python/
+        //
+
+        // ici maintenant on fait une boucle while et on fix apres le bail
+        // pour trouver une reponse on doit faire le calcul suivant :
+        // z = x₁w₁ + x₂w₂ + x₃w₃ + b
+        //
+        int i = 0;
+
+        while (i <= eproach)
         {
-            double prediction =
-                forwardPropagation(inputLayer[i]);
+            // on aplique le calcul
+            // attention que il faut bien faire la bail pour chaque x et w
+            int a = 0;
 
-            cout << "Input : ";
-
-            for (double value : inputLayer[i])
+            while (a < inputLayer.size())
             {
-                cout << value << " ";
-            }
+                // il faut faire une 3eme boucle mtn
+                int n = 0;
 
-            cout << endl;
+                // on commence avec le bias
+                double prediction = bias;
 
-            cout << "Prediction : "
-                 << prediction << endl;
+                while (n < inputLayer[a].size())
+                {
+                    // maintenant dans le bail je vais
+                    prediction = prediction + (inputLayer[a][n] * weight[n]);
 
-            cout << "Answer : "
-                 << awnsers[i] << endl;
+                    n = n + 1;
+                };
 
-            cout << "Loss : "
-                 << loss(prediction, awnsers[i])
-                 << endl;
+                // on calcule l'erreur entre la prediction et la bonne reponse
+                double error = prediction - awnsers[a];
 
-            cout << "----------------------"
-                 << endl;
-        }
+                // c est ici que on doit corriger les weight et bias
 
-        return 0;
+                n = 0;
+
+                while (n < inputLayer[a].size())
+                {
+                    weight[n] = weight[n] - learningRate * error * inputLayer[a][n];
+
+                    n = n + 1;
+                };
+
+                // on corrige le bias
+                bias = bias - learningRate * error;
+
+                a = a + 1;
+            };
+
+            i = i + 1;
+        };
     };
 };
 
 int main()
 {
-    //=======================================
-    // XOR DATASET
-    //=======================================
+
+    // test scene
 
     vector<vector<double>> q = {
         {0.0, 0.0},
         {0.0, 1.0},
         {1.0, 0.0},
         {1.0, 1.0}};
-
-    vector<double> r = {
-        0.0,
-        1.0,
-        1.0,
-        0.0};
-
-    //=======================================
-    // CREATION DU RESEAU
-    //=======================================
-
+    vector<double> r = {0.0, 1.0, 1.0, 0.0};
     neuralNetwork network(q, r, 2, 1);
-
-    //=======================================
-    // ENTRAINEMENT
-    //=======================================
-
     network.train();
-
+    cout << "bias" << endl;
+    cout << network.bias << endl;
+    cout << "weights" << endl;
+    for (int i = 0; i < network.weight.size(); i++)
+    {
+        cout << network.weight[i] << endl;
+    }
     return 0;
 };
