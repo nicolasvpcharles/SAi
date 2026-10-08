@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <cmath>
 #include <random>
@@ -237,7 +238,7 @@ public:
 
                 // correction des poids de sortie
                 neuron = 0;
-
+                vector<double> oldOutputWeight = outputWeight;
                 while (neuron < nNeurons)
                 {
                     double gradient =
@@ -265,7 +266,7 @@ public:
                 {
                     double hiddenGradient =
                         outputGradient *
-                        outputWeight[neuron] *
+                        oldOutputWeight[neuron] *
                         tanhDerivative(hiddenOutput[neuron]);
 
                     // on corrige les weights
@@ -382,6 +383,10 @@ public:
             a = a + 1;
         }
     };
+    void save() {
+
+    };
+    void load() {};
 };
 
 int main()
@@ -393,9 +398,9 @@ int main()
         {0.0, 1.0},
         {1.0, 0.0},
         {1.0, 1.0}};
-    vector<double> r = {0.0, 1.0, 1.0, 0.0};
+    vector<double> r = {0.0, 1.0, 1.0, 1.0};
     neuralNetwork network(q, r, 2, 1);
-    network.train(10000, 0.1);
+    network.train(100000, 0.1);
     cout << "bias" << endl;
     for (int i = 0; i < network.bias.size(); i++)
     {
