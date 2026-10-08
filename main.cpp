@@ -10,8 +10,14 @@ class neuralNetwork
 public:
     vector<vector<double>> inputLayer;
     vector<double> awnsers;
-    vector<double> weight;
-    double bias;
+    vector<vector<double>> weight;
+    vector<double> bias;
+
+    // poids entre la couche cachee et la sortie
+    vector<double> outputWeight;
+
+    // bias de la sortie
+    double outputBias;
 
     double outputLayer;
     double nNeurons;
@@ -96,6 +102,30 @@ public:
         return 1.0 / (1.0 + exp(-x));
     };
 
+    //
+    // FONCTION TANH
+    //
+    double tanhActivation(double x)
+    {
+        return tanh(x);
+    };
+
+    //
+    // DERIVE TANH
+    //
+    double tanhDerivative(double x)
+    {
+        return 1.0 - x * x;
+    };
+
+    //
+    // DERIVE SIGMOIDE
+    //
+    double sigmoidDerivative(double x)
+    {
+        return x * (1.0 - x);
+    };
+
     //=======================================
     // Fontion d entrainement
     //=======================================
@@ -103,71 +133,254 @@ public:
     {
         // on entraine ici le reseaux de neurone
         // il faut donner un weight aleatoire pour commencer l entrainement
-        bias = randomWeight();
 
+        bias.clear();
         weight.clear();
+        outputWeight.clear();
 
-        for (int i = 0; i < inputLayer[0].size(); i++)
+        // on cree les neurones
+        for (int i = 0; i < nNeurons; i++)
         {
-            weight.push_back(randomWeight());
-        };
+            vector<double> neuronWeights;
+
+            // chaque neurone a un weight pour chaque input
+            for (int j = 0; j < inputLayer[0].size(); j++)
+            {
+                neuronWeights.push_back(randomWeight());
+            }
+
+            weight.push_back(neuronWeights);
+            bias.push_back(randomWeight());
+
+            // poids entre le neurone cache et la sortie
+            outputWeight.push_back(randomWeight());
+        }
+
+        // bias de la sortie
+        outputBias = randomWeight();
 
         // normalement on a des weight alleatoires
         // maintenant il va faloir lire une documentation pour comprendre comment le tout marche
         // resources
         // https://www.freecodecamp.org/news/neural-networks-explained-simply-in-python/
-        //
 
-        // ici maintenant on fait une boucle while et on fix apres le bail
-        // pour trouver une reponse on doit faire le calcul suivant :
-        // z = x₁w₁ + x₂w₂ + x₃w₃ + b
-        //
         int i = 0;
 
-        while (i <= eproach)
+        while (i < eproach)
         {
-            // on aplique le calcul
-            // attention que il faut bien faire la bail pour chaque x et w
             int a = 0;
 
             while (a < inputLayer.size())
             {
-                // il faut faire une 3eme boucle mtn
-                int n = 0;
+                // on parcourt chaque neurone
+                int neuron = 0;
 
-                // on commence avec le bias
-                double prediction = bias;
+                //========================================
+                // PREMIERE COUCHE
+                //========================================
 
-                while (n < inputLayer[a].size())
+                vector<double> hiddenOutput;
+
+                while (neuron < nNeurons)
                 {
-                    // maintenant dans le bail je vais
-                    prediction = prediction + (inputLayer[a][n] * weight[n]);
+                    // on commence avec le bias du neurone
+                    double prediction = bias[neuron];
 
-                    n = n + 1;
-                };
+                    // on calcule la prediction
+                    int n = 0;
 
-                // on calcule l'erreur entre la prediction et la bonne reponse
+                    while (n < inputLayer[a].size())
+                    {
+                        prediction = prediction +
+                                     (inputLayer[a][n] * weight[neuron][n]);
+
+                        n = n + 1;
+                    }
+
+                    // fonction d activation tanh
+                    prediction = tanhActivation(prediction);
+
+                    hiddenOutput.push_back(prediction);
+
+                    neuron = neuron + 1;
+                }
+
+                //========================================
+                // DEUXIEME COUCHE
+                //========================================
+
+                double output = outputBias;
+
+                neuron = 0;
+
+                while (neuron < nNeurons)
+                {
+                    output = output +
+                             (hiddenOutput[neuron] * outputWeight[neuron]);
+
+                    neuron = neuron + 1;
+                }
+
+                // fonction sigmoid pour avoir une prediction entre 0 et 1
+                double prediction = sigmoid(output);
+
+                // on calcule l'erreur
                 double error = prediction - awnsers[a];
 
-                // c est ici que on doit corriger les weight et bias
+                //========================================
+                // BACKPROPAGATION
+                //========================================
 
-                n = 0;
+                // gradient de la sortie
+                double outputGradient =
+                    error * sigmoidDerivative(prediction);
 
-                while (n < inputLayer[a].size())
+                // correction des poids de sortie
+                neuron = 0;
+
+                while (neuron < nNeurons)
                 {
-                    weight[n] = weight[n] - learningRate * error * inputLayer[a][n];
+                    double gradient =
+                        outputGradient * hiddenOutput[neuron];
 
-                    n = n + 1;
-                };
+                    outputWeight[neuron] =
+                        outputWeight[neuron] -
+                        learningRate * gradient;
 
-                // on corrige le bias
-                bias = bias - learningRate * error;
+                    neuron = neuron + 1;
+                }
+
+                // correction du bias de sortie
+                outputBias =
+                    outputBias -
+                    learningRate * outputGradient;
+
+                //========================================
+                // CORRECTION COUCHE CACHEE
+                //========================================
+
+                neuron = 0;
+
+                while (neuron < nNeurons)
+                {
+                    double hiddenGradient =
+                        outputGradient *
+                        outputWeight[neuron] *
+                        tanhDerivative(hiddenOutput[neuron]);
+
+                    // on corrige les weights
+                    int n = 0;
+
+                    while (n < inputLayer[a].size())
+                    {
+                        weight[neuron][n] =
+                            weight[neuron][n] -
+                            learningRate *
+                                hiddenGradient *
+                                inputLayer[a][n];
+
+                        n = n + 1;
+                    }
+
+                    // on corrige le bias
+                    bias[neuron] =
+                        bias[neuron] -
+                        learningRate * hiddenGradient;
+
+                    neuron = neuron + 1;
+                }
 
                 a = a + 1;
-            };
+            }
 
             i = i + 1;
-        };
+        }
+    };
+
+    void predict(vector<vector<double>> input)
+    {
+        // en utilisant les weights on peut predire un output
+        // il faut que je relise la doc le bail est dur smr
+
+        int a = 0;
+
+        while (a < input.size())
+        {
+            vector<double> hiddenOutput;
+
+            // on parcourt les neurones de la couche cachee
+            int neuron = 0;
+
+            while (neuron < nNeurons)
+            {
+                double prediction = bias[neuron];
+
+                int n = 0;
+
+                while (n < input[a].size())
+                {
+                    prediction =
+                        prediction +
+                        (input[a][n] * weight[neuron][n]);
+
+                    n = n + 1;
+                }
+
+                // activation tanh
+                prediction = tanhActivation(prediction);
+
+                hiddenOutput.push_back(prediction);
+
+                neuron = neuron + 1;
+            }
+
+            //========================================
+            // SORTIE
+            //========================================
+
+            double output = outputBias;
+
+            neuron = 0;
+
+            while (neuron < nNeurons)
+            {
+                output =
+                    output +
+                    (hiddenOutput[neuron] *
+                     outputWeight[neuron]);
+
+                neuron = neuron + 1;
+            }
+
+            // sigmoid
+            double prediction = sigmoid(output);
+
+            cout << "Input : ";
+
+            int n = 0;
+
+            while (n < input[a].size())
+            {
+                cout << input[a][n] << " ";
+                n = n + 1;
+            }
+
+            cout << "-> Prediction : "
+                 << prediction;
+
+            if (prediction >= 0.5)
+            {
+                cout << " -> 1";
+            }
+            else
+            {
+                cout << " -> 0";
+            }
+
+            cout << endl;
+
+            a = a + 1;
+        }
     };
 };
 
@@ -175,7 +388,6 @@ int main()
 {
 
     // test scene
-
     vector<vector<double>> q = {
         {0.0, 0.0},
         {0.0, 1.0},
@@ -183,13 +395,46 @@ int main()
         {1.0, 1.0}};
     vector<double> r = {0.0, 1.0, 1.0, 0.0};
     neuralNetwork network(q, r, 2, 1);
-    network.train();
+    network.train(10000, 0.1);
     cout << "bias" << endl;
-    cout << network.bias << endl;
+    for (int i = 0; i < network.bias.size(); i++)
+    {
+        cout << "Bias " << i << " : " << network.bias[i] << endl;
+    }
+
     cout << "weights" << endl;
     for (int i = 0; i < network.weight.size(); i++)
     {
-        cout << network.weight[i] << endl;
+        cout << "Neuron " << i << " : ";
+
+        for (int j = 0; j < network.weight[i].size(); j++)
+        {
+            cout << network.weight[i][j] << " ";
+        }
+
+        cout << endl;
     }
+
+    // il faut que mtn que j ajoute une prediction pour le bail
+
+    cout << endl;
+    cout << "Output weights : ";
+
+    for (int i = 0; i < network.outputWeight.size(); i++)
+    {
+        cout << network.outputWeight[i] << " ";
+    }
+
+    cout << endl;
+
+    cout << "Output bias : "
+         << network.outputBias
+         << endl;
+
+    cout << endl;
+    cout << "Predictions :" << endl;
+
+    network.predict(q);
+
     return 0;
 };
