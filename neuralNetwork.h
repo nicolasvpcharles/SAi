@@ -2,9 +2,12 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <vector>
 #include <cmath>
 #include <random>
+#include <string>
+
 using namespace std;
 
 // for calculating a neural network it is n1 + w1 + b
@@ -299,94 +302,220 @@ public:
             i = i + 1;
         }
     };
-
-    void predict(vector<vector<double>> input)
+    //==========================================================
+    // FONCTION SAVE
+    //==========================================================
+    void save(string filePath)
     {
-        // en utilisant les weights on peut predire un output
-        // il faut que je relise la doc le bail est dur smr
-
-        int a = 0;
-
-        while (a < input.size())
+        //
+        // la fonction save peut save les weights du neural network
+        //
+        ofstream weightFile(filePath + "/weight.txt");
+        // verifier si le fichier est ouvert
+        if (!weightFile.is_open())
         {
-            vector<double> hiddenOutput;
-
-            // on parcourt les neurones de la couche cachee
-            int neuron = 0;
-
-            while (neuron < nNeurons)
+            cout << "Erreur : impossible d'ouvrir le fichier" << endl;
+            return;
+        }
+        // je dois maintenant ecrire la data
+        int weightFileI = 0;
+        string weightSTR = "";
+        while (weightFileI != weight.size())
+        {
+            int weightFileA = 0;
+            while (weightFileA != weight[weightFileI].size())
             {
-                double prediction = bias[neuron];
-
-                int n = 0;
-
-                while (n < input[a].size())
+                if (weightSTR != "")
                 {
-                    prediction =
-                        prediction +
-                        (input[a][n] * weight[neuron][n]);
-
-                    n = n + 1;
+                    weightSTR = weightSTR + "," + to_string(weight[weightFileI][weightFileA]);
+                    weightFileA = weightFileA + 1;
                 }
+                else
+                {
+                    weightSTR = to_string(weight[weightFileI][weightFileA]);
+                };
 
-                // activation tanh
-                prediction = tanhActivation(prediction);
+                weightFileA = weightFileA + 1;
+            };
+            weightSTR = weightSTR + ";";
+            weightFileI = weightFileI + 1;
+        };
+        weightFile << weightSTR;
 
-                hiddenOutput.push_back(prediction);
+        weightFile.close();
+        // maintenant je dois save le bias mais ça je dois juste faire la mm chose sans le ;
+        //  sauvegarder les bias
+        ofstream biasFile(filePath + "/bias.txt");
 
-                neuron = neuron + 1;
-            }
+        if (!biasFile.is_open())
+        {
+            cout << "Erreur : impossible d'ouvrir bias.txt" << endl;
+            return;
+        }
 
-            //========================================
-            // SORTIE
-            //========================================
+        int biasFileI = 0;
 
-            double output = outputBias;
-
-            neuron = 0;
-
-            while (neuron < nNeurons)
+        while (biasFileI < bias.size())
+        {
+            if (biasFileI > 0)
             {
-                output =
-                    output +
-                    (hiddenOutput[neuron] *
-                     outputWeight[neuron]);
-
-                neuron = neuron + 1;
+                biasFile << ",";
             }
 
-            // sigmoid
-            double prediction = sigmoid(output);
+            biasFile << bias[biasFileI];
 
-            cout << "Input : ";
+            biasFileI = biasFileI + 1;
+        }
+
+        biasFile.close();
+
+        // file saved
+        return;
+    };
+    //
+    // FONCTION LOAD
+    //
+    void loadWeight(string filePath)
+    {
+        ifstream weightFile(filePath + "/weight.txt");
+
+        if (!weightFile.is_open())
+        {
+            cout << "Erreur : impossible d'ouvrir weight.txt" << endl;
+            return;
+        }
+
+        weight.clear();
+
+        string weightLine;
+        getline(weightFile, weightLine);
+
+        stringstream neuronStream(weightLine);
+        string neuronSTR;
+
+        while (getline(neuronStream, neuronSTR, ';'))
+        {
+            if (neuronSTR.empty())
+            {
+                continue;
+            }
+
+            vector<double> neuronWeights;
+            stringstream weightStream(neuronSTR);
+            string weightSTR;
+
+            while (getline(weightStream, weightSTR, ','))
+            {
+                if (!weightSTR.empty())
+                {
+                    neuronWeights.push_back(stod(weightSTR));
+                }
+            }
+
+            weight.push_back(neuronWeights);
+        }
+
+        weightFile.close();
+
+        cout << "Weights charges !" << endl;
+    }
+
+    //
+    // Load Bias
+    //
+
+    void loadBias(string filePath)
+    {
+        ifstream biasFile(filePath + "/bias.txt");
+
+        if (!biasFile.is_open())
+        {
+            cout << "Erreur : impossible d'ouvrir bias.txt" << endl;
+            return;
+        }
+
+        bias.clear();
+
+        string biasLine;
+        getline(biasFile, biasLine);
+
+        stringstream biasStream(biasLine);
+        string biasSTR;
+
+        while (getline(biasStream, biasSTR, ','))
+        {
+            if (!biasSTR.empty())
+            {
+                bias.push_back(stod(biasSTR));
+            }
+        }
+
+        biasFile.close();
+
+        cout << "Bias charges !" << endl;
+    }
+
+    double predict(vector<double> input)
+    {
+        // on parcourt les neurones de la couche cachee
+        vector<double> hiddenOutput;
+
+        int neuron = 0;
+
+        while (neuron < nNeurons)
+        {
+            double prediction = bias[neuron];
 
             int n = 0;
 
-            while (n < input[a].size())
+            while (n < input.size())
             {
-                cout << input[a][n] << " ";
+                prediction = prediction +
+                             (input[n] * weight[neuron][n]);
+
                 n = n + 1;
             }
 
-            cout << "-> Prediction : "
-                 << prediction;
+            // activation tanh
+            prediction = tanhActivation(prediction);
 
-            if (prediction >= 0.5)
-            {
-                cout << " -> 1";
-            }
-            else
-            {
-                cout << " -> 0";
-            }
+            hiddenOutput.push_back(prediction);
 
-            cout << endl;
-
-            a = a + 1;
+            neuron = neuron + 1;
         }
-    };
-    void save() {
 
+        //========================================
+        // SORTIE
+        //========================================
+
+        double output = outputBias;
+
+        neuron = 0;
+
+        while (neuron < nNeurons)
+        {
+            output = output +
+                     (hiddenOutput[neuron] *
+                      outputWeight[neuron]);
+
+            neuron = neuron + 1;
+        }
+
+        // sigmoid
+        double prediction = sigmoid(output);
+
+        return prediction;
     };
-    void load() {};
+
+    bool round(double neuralNetworkPrediction)
+    {
+        if (neuralNetworkPrediction >= 0.5)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        };
+    };
 };
