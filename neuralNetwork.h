@@ -585,22 +585,36 @@ public:
 
         return prediction;
     };
-    double evaluate(vector<vector<double>> trainingDataset, vector<double> trainingResponseDataset)
+
+    double evaluate(
+        vector<vector<double>> trainingDataset,
+        vector<double> trainingResponseDataset)
     {
-        // pour evaluer un modele il va faloir juste faire une boucle while avec predict et round la reponse et si elle corespond bien a la 2eme variable tout est bon
-        int i = 0;
-        int accuracy;
-        while (i != trainingDataset.size())
+        if (trainingDataset.empty() ||
+            trainingDataset.size() != trainingResponseDataset.size())
+        {
+            cout << "Erreur : dataset invalide." << endl;
+            return 0.0;
+        }
+
+        size_t i = 0;
+        int accuracy = 0;
+
+        while (i < trainingDataset.size())
         {
             double testPrediction = predict(trainingDataset[i]);
             testPrediction = round(testPrediction);
+
             if (testPrediction == trainingResponseDataset[i])
             {
-                accuracy = accuracy + 1;
-            };
-            i = i + 1;
-        };
-        // la il faut juste que je retourne un accuracy mais divisé
-        return (accuracy / trainingDataset.size());
+                accuracy++;
+            }
+
+            i++;
+        }
+
+        return (static_cast<double>(accuracy) /
+                trainingResponseDataset.size()) *
+               100.0;
     }
 };
