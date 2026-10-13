@@ -132,6 +132,23 @@ public:
         return x * (1.0 - x);
     };
 
+    double norm(double value, double maxValue)
+    {
+        return value / maxValue;
+    }
+
+    bool round(double neuralNetworkPrediction)
+    {
+        if (neuralNetworkPrediction >= 0.5)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        };
+    };
+
     //=======================================
     // Fontion d entrainement
     //=======================================
@@ -300,6 +317,7 @@ public:
             }
 
             i = i + 1;
+            cout << i << "/" << eproach << endl;
         }
     };
     //==========================================================
@@ -307,71 +325,89 @@ public:
     //==========================================================
     void save(string filePath)
     {
-        //
-        // la fonction save peut save les weights du neural network
-        //
+        // sauvegarder les weights
         ofstream weightFile(filePath + "/weight.txt");
-        // verifier si le fichier est ouvert
+
         if (!weightFile.is_open())
         {
-            cout << "Erreur : impossible d'ouvrir le fichier" << endl;
+            cout << "error impossible to open weight.txt" << endl;
             return;
         }
-        // je dois maintenant ecrire la data
-        int weightFileI = 0;
-        string weightSTR = "";
-        while (weightFileI != weight.size())
-        {
-            int weightFileA = 0;
-            while (weightFileA != weight[weightFileI].size())
-            {
-                if (weightSTR != "")
-                {
-                    weightSTR = weightSTR + "," + to_string(weight[weightFileI][weightFileA]);
-                    weightFileA = weightFileA + 1;
-                }
-                else
-                {
-                    weightSTR = to_string(weight[weightFileI][weightFileA]);
-                };
 
-                weightFileA = weightFileA + 1;
-            };
-            weightSTR = weightSTR + ";";
-            weightFileI = weightFileI + 1;
-        };
-        weightFile << weightSTR;
+        for (int i = 0; i < weight.size(); i++)
+        {
+            for (int j = 0; j < weight[i].size(); j++)
+            {
+                if (j > 0)
+                {
+                    weightFile << ",";
+                }
+
+                weightFile << weight[i][j];
+            }
+
+            weightFile << ";";
+        }
 
         weightFile.close();
-        // maintenant je dois save le bias mais ça je dois juste faire la mm chose sans le ;
-        //  sauvegarder les bias
+
+        // sauvegarder les bias
         ofstream biasFile(filePath + "/bias.txt");
 
         if (!biasFile.is_open())
         {
-            cout << "Erreur : impossible d'ouvrir bias.txt" << endl;
+            cout << "error impossible to open bias.txt" << endl;
             return;
         }
 
-        int biasFileI = 0;
-
-        while (biasFileI < bias.size())
+        for (int i = 0; i < bias.size(); i++)
         {
-            if (biasFileI > 0)
+            if (i > 0)
             {
                 biasFile << ",";
             }
 
-            biasFile << bias[biasFileI];
-
-            biasFileI = biasFileI + 1;
+            biasFile << bias[i];
         }
 
         biasFile.close();
 
-        // file saved
-        return;
-    };
+        // sauvegarder les poids de sortie
+        ofstream outputWeightFile(filePath + "/outputWeight.txt");
+
+        if (!outputWeightFile.is_open())
+        {
+            cout << "error impossible to open outputWeight.txt" << endl;
+            return;
+        }
+
+        for (int i = 0; i < outputWeight.size(); i++)
+        {
+            if (i > 0)
+            {
+                outputWeightFile << ",";
+            }
+
+            outputWeightFile << outputWeight[i];
+        }
+
+        outputWeightFile.close();
+
+        // sauvegarder le bias de sortie
+        ofstream outputBiasFile(filePath + "/outputBias.txt");
+
+        if (!outputBiasFile.is_open())
+        {
+            cout << "error impossible to open outputBias.txt" << endl;
+            return;
+        }
+
+        outputBiasFile << outputBias;
+        outputBiasFile.close();
+
+        cout << "Modele sauvegarde !" << endl;
+    }
+
     //
     // FONCTION LOAD
     //
@@ -381,19 +417,15 @@ public:
 
         if (!weightFile.is_open())
         {
-            cout << "Erreur : impossible d'ouvrir weight.txt" << endl;
+            cout << "error impossible to open weight.txt" << endl;
             return;
         }
 
         weight.clear();
 
-        string weightLine;
-        getline(weightFile, weightLine);
-
-        stringstream neuronStream(weightLine);
         string neuronSTR;
 
-        while (getline(neuronStream, neuronSTR, ';'))
+        while (getline(weightFile, neuronSTR, ';'))
         {
             if (neuronSTR.empty())
             {
@@ -416,8 +448,6 @@ public:
         }
 
         weightFile.close();
-
-        cout << "Weights charges !" << endl;
     }
 
     //
@@ -430,19 +460,15 @@ public:
 
         if (!biasFile.is_open())
         {
-            cout << "Erreur : impossible d'ouvrir bias.txt" << endl;
+            cout << "error impossible to open bias.txt" << endl;
             return;
         }
 
         bias.clear();
 
-        string biasLine;
-        getline(biasFile, biasLine);
-
-        stringstream biasStream(biasLine);
         string biasSTR;
 
-        while (getline(biasStream, biasSTR, ','))
+        while (getline(biasFile, biasSTR, ','))
         {
             if (!biasSTR.empty())
             {
@@ -451,9 +477,62 @@ public:
         }
 
         biasFile.close();
-
-        cout << "Bias charges !" << endl;
     }
+
+    //
+    // Load Output Weight
+    //
+    void loadOutputWeight(string filePath)
+    {
+        ifstream outputWeightFile(filePath + "/outputWeight.txt");
+
+        if (!outputWeightFile.is_open())
+        {
+            cout << "error impossible to open outputWeight.txt" << endl;
+            return;
+        }
+
+        outputWeight.clear();
+
+        string weightSTR;
+
+        while (getline(outputWeightFile, weightSTR, ','))
+        {
+            if (!weightSTR.empty())
+            {
+                outputWeight.push_back(stod(weightSTR));
+            }
+        }
+
+        outputWeightFile.close();
+    }
+
+    //
+    // Load Output Bias
+    //
+    void loadOutputBias(string filePath)
+    {
+        ifstream outputBiasFile(filePath + "/outputBias.txt");
+
+        if (!outputBiasFile.is_open())
+        {
+            cout << "error impossible to open outputBias.txt" << endl;
+            return;
+        }
+
+        outputBiasFile >> outputBias;
+
+        outputBiasFile.close();
+    }
+
+    void load(string filepath)
+    {
+        loadWeight(filepath);
+        loadBias(filepath);
+        loadOutputWeight(filepath);
+        loadOutputBias(filepath);
+        return;
+    };
 
     double predict(vector<double> input)
     {
@@ -506,16 +585,22 @@ public:
 
         return prediction;
     };
-
-    bool round(double neuralNetworkPrediction)
+    double evaluate(vector<vector<double>> trainingDataset, vector<double> trainingResponseDataset)
     {
-        if (neuralNetworkPrediction >= 0.5)
+        // pour evaluer un modele il va faloir juste faire une boucle while avec predict et round la reponse et si elle corespond bien a la 2eme variable tout est bon
+        int i = 0;
+        int accuracy;
+        while (i != trainingDataset.size())
         {
-            return true;
-        }
-        else
-        {
-            return false;
+            double testPrediction = predict(trainingDataset[i]);
+            testPrediction = round(testPrediction);
+            if (testPrediction == trainingResponseDataset[i])
+            {
+                accuracy = accuracy + 1;
+            };
+            i = i + 1;
         };
-    };
+        // la il faut juste que je retourne un accuracy mais divisé
+        return (accuracy / trainingDataset.size());
+    }
 };
