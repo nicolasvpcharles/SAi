@@ -8,6 +8,9 @@
 #include <random>
 #include <string>
 #include <thread>
+#include <algorithm>
+#include <stdexcept>
+
 using namespace std;
 
 // for calculating a neural network it is n1 + w1 + b
@@ -36,6 +39,22 @@ public:
         awnsers = nAwnsers;
         nNeurons = numberNeurons;
         neuronDepth = nNeuronDepth;
+
+        if (inputLayer.size() != nAwnsers.size())
+        {
+            throw invalid_argument(
+                "neuralNetwork::neuralNetwork: input dataset and awnsers are different sizes");
+        };
+        if (numberNeurons <= 0)
+        {
+            throw invalid_argument(
+                "neuralNetwork::neuralNetwork: number of neurons must be bigger than 0");
+        };
+        if (nNeuronDepth <= 0)
+        {
+            throw invalid_argument(
+                "neuralNetwork::neuralNetwork: neuron depth must be bigger than 0");
+        };
     };
 
     double randomWeight()
@@ -331,6 +350,10 @@ public:
         if (!weightFile.is_open())
         {
             cout << "error impossible to open weight.txt" << endl;
+
+            throw invalid_argument(
+                "neuralNetwork::neuralNetwork: impossible to open weight.txt");
+
             return;
         }
 
@@ -378,6 +401,8 @@ public:
         if (!outputWeightFile.is_open())
         {
             cout << "error impossible to open outputWeight.txt" << endl;
+            throw invalid_argument(
+                "neuralNetwork::neuralNetwork: impossible to open outputWeight.txt");
             return;
         }
 
@@ -399,6 +424,8 @@ public:
         if (!outputBiasFile.is_open())
         {
             cout << "error impossible to open outputBias.txt" << endl;
+            throw invalid_argument(
+                "neuralNetwork::neuralNetwork: impossible to open outputBias.txt");
             return;
         }
 
@@ -418,6 +445,8 @@ public:
         if (!weightFile.is_open())
         {
             cout << "error impossible to open weight.txt" << endl;
+            throw invalid_argument(
+                "neuralNetwork::neuralNetwork: impossible to open weight.txt");
             return;
         }
 
@@ -461,6 +490,8 @@ public:
         if (!biasFile.is_open())
         {
             cout << "error impossible to open bias.txt" << endl;
+            throw invalid_argument(
+                "neuralNetwork::neuralNetwork: impossible to open bias.txt");
             return;
         }
 
@@ -489,6 +520,8 @@ public:
         if (!outputWeightFile.is_open())
         {
             cout << "error impossible to open outputWeight.txt" << endl;
+            throw invalid_argument(
+                "neuralNetwork::neuralNetwork: impossible to open outputWeight.txt");
             return;
         }
 
@@ -517,6 +550,8 @@ public:
         if (!outputBiasFile.is_open())
         {
             cout << "error impossible to open outputBias.txt" << endl;
+            throw invalid_argument(
+                "neuralNetwork::neuralNetwork: impossible to open outputBias.txt");
             return;
         }
 
@@ -638,6 +673,17 @@ public:
         int pastCalibratedEproach = calibratedEproach / 2;
         double calibratedEproachResult;
         double pastCalibratedEproachResult;
+
+        calibratedEproach = minEproach;
+        pastCalibratedEproach = 0;
+
+        calibratedEproachResult = 0.0;
+        pastCalibratedEproachResult = 0.0;
+
+        int step = 5000;
+        int bestEproach = calibratedEproach;
+        double bestAccuracy = 0.0;
+
         // je fait le premier entrainement sur le coté car comme ça on entraine pas le meme modele 2 fois
 
         cout << "Debut de la calibration" << endl;
@@ -648,26 +694,35 @@ public:
         {
             // maintenant que j ai reussi a faire les 2 thread je dois apres faire pour que si c est le past qui gagne je utilise le past comme calibrated sinon on multiplie calibrated par 2
             // verifier lequel est meilleur en accuracy
-            if (calibratedEproachResult > pastCalibratedEproachResult)
+            if (calibratedEproachResult > bestAccuracy)
             {
-                // si le nombre les plus grand a une eilleur accuracy on doit allors mettre le calibrated result comme pas calibrate dresult et faire une petite augmentation de une moitié
-                // et alors on entraine le nouveau calibratedresult
-                pastCalibratedEproach = calibratedEproach;
-                calibratedEproach = pastCalibratedEproach * 1.5;
+                bestAccuracy = calibratedEproachResult;
+                bestEproach = calibratedEproach;
 
-                trainAndEvaluate(calibratedEproach, dataset, result);
+                // On continue à explorer plus loin.
+                calibratedEproach = min(maxEproach,
+                                        calibratedEproach + step);
             }
             else
             {
+                // On revient au meilleur nombre d'epochs.
+                calibratedEproach = bestEproach;
 
-                // alors ici on fait l inverse
-                pastCalibratedEproach = calibratedEproach;
-                calibratedEproach = (calibratedEproach + pastCalibratedEproach) / 2;
-                trainAndEvaluate(pastCalibratedEproach, dataset, result);
-            };
+                // On réduit la taille du prochain déplacement.
+                step = step / 2;
+
+                if (step < 100)
+                    break;
+
+                calibratedEproach = min(maxEproach,
+                                        bestEproach + step);
+            }
+
+            calibratedEproachResult =
+                trainAndEvaluate(calibratedEproach, dataset, result);
             a = a + 1;
         };
 
-        return calibratedEproach;
+        return bestEproach;
     };
 };
