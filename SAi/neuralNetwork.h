@@ -10,6 +10,7 @@
 #include <thread>
 #include <algorithm>
 #include <stdexcept>
+#include "modules/datasetopen.h"
 
 using namespace std;
 
@@ -726,3 +727,51 @@ public:
         return bestEproach;
     };
 };
+// il faut que je regarde pour faire un resaux neuronal qui fait la sur des vector<vector<vector>> pou que il soit utile pour la reconnaisance de immage
+// il faut aussi que je regarde pour faire different algorithmes de clasification
+//
+// il faut que j optimise le code du programe peut etre avec des threads
+//
+// regarder aussi pour ajouter des fonctions comme des load csv pour le dataset
+//
+// ajouter une fonction load model avec le nombre de neurones
+//
+// peut etre regarder d autres bails a regarder
+
+//
+// fonction de load dataset
+//
+// la fonction va avoir pour but d aider a au lieu de avec un module externe de load un dataset csv de le faire nativement et en vecteur
+vector<vector<double>> loadDatasetCsv(string path)
+{
+    vector<vector<double>> dataset = loadDataset(path);
+    if (dataset.empty())
+    {
+
+        // erreur car le dataset est vide
+        throw invalid_argument(
+            "neuralNetwork::loadDatasetCsv: " + path + " est vide");
+    };
+    return loadDataset(path);
+};
+vector<double> loadResultCsv(string path)
+{
+    vector<vector<double>> bufferDataset = loadDataset(path);
+    vector<double> results;
+
+    for (const auto &row : bufferDataset)
+    {
+        if (!row.empty())
+        {
+            results.push_back(row[0]);
+        }
+        if (row.empty())
+        {
+            // erreur car le dataset est vide
+            throw invalid_argument(
+                "neuralNetwork::loadResultCsv: " + path + " est vide");
+        };
+    }
+
+    return results;
+}
