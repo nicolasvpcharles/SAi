@@ -8,7 +8,7 @@ A Simple Artificial Inteligence module writen in c++ that has all the basics to 
 The network contains:
 - An input layer.
 - One hidden layer with a configurable number of neurons.
-- One output neuron.
+- One output neuron that varies from 0 to 1.
 
 The hidden layer uses the `tanh` activation function. The output layer uses the `sigmoid` activation function, producing a prediction between 0 and 1.
 
