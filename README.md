@@ -1,4 +1,4 @@
-# SeAi
+# SAi
 A Simple Artificial Inteligence module writen in c++ that has all the basics to have a small neuronal network on your project
 
 <br>(see some <a href="https://github.com/nicolasvpcharles/footballpredictor">project examples</a>) <br>
